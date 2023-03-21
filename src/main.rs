@@ -120,12 +120,21 @@ fn eval(expr: &LispExpr, env: &mut HashMap<String, i32>) -> Result<i32, String> 
                         Err("Expected a symbol as first argument".to_string())
                     }
                 }
+                LispExpr::Symbol(s) if s == "if" => {
+                    if rest.len() != 3 {
+                        return Err("Expected three arguments".to_string());
+                    }
+                    let pred = eval(&rest[0], env)?;
+                    if pred != 0 {
+                        eval(&rest[1], env)
+                    } else {
+                        eval(&rest[2], env)
+                    }
+                }
                 _ => Err("Unexpected function or syntax".to_string()),
             }
         }
-        LispExpr::Cons(_a) => {
-            Err("not implemented".to_string())
-        }
+        LispExpr::Cons(_) => unimplemented!(),
     }
 }
 
@@ -187,5 +196,7 @@ mod tests {
         assert_eq!(result, 6);
         let result2 = eval_str("(- 7 4)").unwrap();
         assert_eq!(result2, 3);
+        let result3 = eval_str("(if 1 3 2)").unwrap();
+        assert_eq!(result3, 3);
     }
 }
