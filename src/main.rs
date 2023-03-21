@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+mod tokenize;
+
 #[derive(Debug, PartialEq)]
 enum LispExpr {
     Int(i32),
@@ -7,15 +9,6 @@ enum LispExpr {
     List(Vec<LispExpr>),
 }
 
-// 文字列をtoken化
-fn tokenize(program: &str) -> Vec<String> {
-    program
-        .replace("(", " ( ")
-        .replace(")", " ) ")
-        .split_whitespace()
-        .map(|s| s.to_string())
-        .collect()
-}
 
 // tokenを構文木に変換
 fn parse(tokens: &[String]) -> Result<(LispExpr, &[String]), String> {
@@ -128,7 +121,7 @@ fn eval(expr: &LispExpr, env: &mut HashMap<String, i32>) -> Result<i32, String> 
 }
 
 fn eval_str(program: &str) -> Result<i32, String> {
-    let tokens = tokenize(program);
+    let tokens = tokenize::tokenize(program);
     let (expr, rest) = parse(&tokens)?;
     if !rest.is_empty() {
         return Err("Unexpected trailing tokens".to_string());
@@ -147,14 +140,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use crate::{tokenize, parse, eval_str, LispExpr};
-
-    #[test]
-    fn test_tokenize() {
-        assert_eq!(tokenize("()"), ["(", ")"]);
-        assert_eq!(tokenize("(1)"), ["(", "1", ")"]);
-        assert_eq!(tokenize("(+ 1 1)"), ["(", "+", "1", "1", ")"]);
-    }
+    use crate::{parse, eval_str, LispExpr};
 
     #[test]
     fn test_parse() {
