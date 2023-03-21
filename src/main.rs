@@ -108,6 +108,71 @@ fn eval(expr: &LispExpr, env: &mut HashMap<String, i32>) -> Result<i32, String> 
                     }
                     Ok(result)                    
                 }
+                LispExpr::Symbol(s) if s == "=" => {
+                    if rest.is_empty() {
+                        return Err("Expected at least one argument".to_string());
+                    }
+                    let result = eval(&rest[0], env)?;
+                    for expr in &rest[1..] {
+                        let val = eval(expr, env)?;
+                        if val != result {
+                            return Ok(0);
+                        }
+                    }
+                    Ok(1)                    
+                }
+                LispExpr::Symbol(s) if s == "<" => {
+                    if rest.is_empty() {
+                        return Err("Expected at least one argument".to_string());
+                    }
+                    let result = eval(&rest[0], env)?;
+                    for expr in &rest[1..] {
+                        let val = eval(expr, env)?;
+                        if val <= result {
+                            return Ok(0);
+                        }
+                    }
+                    Ok(1)                    
+                }
+                LispExpr::Symbol(s) if s == "<=" => {
+                    if rest.is_empty() {
+                        return Err("Expected at least one argument".to_string());
+                    }
+                    let result = eval(&rest[0], env)?;
+                    for expr in &rest[1..] {
+                        let val = eval(expr, env)?;
+                        if val < result {
+                            return Ok(0);
+                        }
+                    }
+                    Ok(1)                    
+                }
+                LispExpr::Symbol(s) if s == ">" => {
+                    if rest.is_empty() {
+                        return Err("Expected at least one argument".to_string());
+                    }
+                    let result = eval(&rest[0], env)?;
+                    for expr in &rest[1..] {
+                        let val = eval(expr, env)?;
+                        if val >= result {
+                            return Ok(0);
+                        }
+                    }
+                    Ok(1)                    
+                }
+                LispExpr::Symbol(s) if s == ">=" => {
+                    if rest.is_empty() {
+                        return Err("Expected at least one argument".to_string());
+                    }
+                    let result = eval(&rest[0], env)?;
+                    for expr in &rest[1..] {
+                        let val = eval(expr, env)?;
+                        if val > result {
+                            return Ok(0);
+                        }
+                    }
+                    Ok(1)                    
+                }
                 LispExpr::Symbol(s) if s == "let" => {
                     if rest.len() != 2 {
                         return Err("Expected two arguments".to_string());
@@ -194,9 +259,21 @@ mod tests {
     fn test_eval_str() {
         let result = eval_str("(* 2 3)").unwrap();
         assert_eq!(result, 6);
-        let result2 = eval_str("(- 7 4)").unwrap();
-        assert_eq!(result2, 3);
-        let result3 = eval_str("(if 1 3 2)").unwrap();
-        assert_eq!(result3, 3);
+        let result = eval_str("(- 7 4)").unwrap();
+        assert_eq!(result, 3);
+        let result = eval_str("(if 1 3 2)").unwrap();
+        assert_eq!(result, 3);
+        let result = eval_str("(= 1 3 2)").unwrap();
+        assert_eq!(result, 0);
+        let result = eval_str("(= 1 1 1)").unwrap();
+        assert_eq!(result, 1);
+        let result = eval_str("(< 1 2)").unwrap();
+        assert_eq!(result, 1);
+        let result = eval_str("(<= 1 1)").unwrap();
+        assert_eq!(result, 1);
+        let result = eval_str("(> 2 1)").unwrap();
+        assert_eq!(result, 1);
+        let result = eval_str("(>= 1 1)").unwrap();
+        assert_eq!(result, 1);
     }
 }
