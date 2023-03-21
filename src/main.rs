@@ -2,13 +2,13 @@ use std::{collections::HashMap, io::Write};
 
 mod tokenize;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug,Clone, PartialEq)]
 enum LispExpr {
     Int(i32),
     Symbol(String),
     List(Vec<LispExpr>),
+    Cons(Box<(LispExpr, LispExpr)>),
 }
-
 
 // tokenを構文木に変換
 fn parse(tokens: &[String]) -> Result<(LispExpr, &[String]), String> {
@@ -30,6 +30,12 @@ fn parse(tokens: &[String]) -> Result<(LispExpr, &[String]), String> {
             list.push(expr);
             if rest[0] == ")" {
                 rest = &rest[1..];
+                if list.len() == 3 && list[0] == LispExpr::Symbol("cons".to_string()) {
+                    let car = list[1].clone();
+                    let cdr = list[2].clone();
+                    let cons = LispExpr::Cons(Box::new((car, cdr)));
+                    return Ok((cons, rest));
+                }
                 return Ok((LispExpr::List(list), rest));
             }
         }        
@@ -116,6 +122,9 @@ fn eval(expr: &LispExpr, env: &mut HashMap<String, i32>) -> Result<i32, String> 
                 }
                 _ => Err("Unexpected function or syntax".to_string()),
             }
+        }
+        LispExpr::Cons(_a) => {
+            Err("not implemented".to_string())
         }
     }
 }
