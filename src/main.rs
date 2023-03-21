@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, io::Write};
 
 mod tokenize;
 
@@ -131,10 +131,22 @@ fn eval_str(program: &str) -> Result<i32, String> {
 }
 
 fn main() {
-    let program = "(+ (* 2 3) (- 7 4))";
-    match eval_str(program) {
-        Ok(result) => println!("{}", result),
-        Err(err) => println!("Error: {}", err)
+    loop {
+        print!("> ");
+        std::io::stdout().flush().unwrap();
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        let input = input.trim();
+        if input == "" {
+            continue;
+        }
+        if input == "quit" {
+            break;
+        }
+        match eval_str(input) {
+            Ok(result) => println!("{}", result),
+            Err(err) => println!("Error: {}", err)
+        }
     }
 }
 
