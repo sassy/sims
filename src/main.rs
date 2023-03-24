@@ -10,6 +10,17 @@ enum LispExpr {
     Cons(Box<(LispExpr, LispExpr)>),
 }
 
+impl LispExpr {
+    pub fn expr_str(self) -> String {
+        match self {
+            LispExpr::Int(n) => n.to_string(),
+            LispExpr::Symbol(s) => s,
+            LispExpr::List(_) => "not implemented".to_string(),
+            LispExpr::Cons(_) => "not implemented".to_string(),
+        }
+    }
+}
+
 // tokenを構文木に変換
 fn parse(tokens: &[String]) -> Result<(LispExpr, &[String]), String> {
     if tokens.is_empty() {
@@ -51,12 +62,12 @@ fn parse(tokens: &[String]) -> Result<(LispExpr, &[String]), String> {
 }
 
 // 構文木を再帰的に評価する
-fn eval(expr: &LispExpr, env: &mut HashMap<String, i32>) -> Result<i32, String> {
+fn eval(expr: &LispExpr, env: &mut HashMap<String, i32>) -> Result<LispExpr, String> {
     match expr {
-        LispExpr::Int(n) => Ok(*n),
+        LispExpr::Int(n) => Ok(LispExpr::Int(*n)),
         LispExpr::Symbol(s) => {
             if let Some(val) = env.get(s) {
-                Ok(*val)
+                Ok(LispExpr::Int(*val))
             } else {
                 Err(format!("Undefined symbol '{}", s))
             }
@@ -72,41 +83,67 @@ fn eval(expr: &LispExpr, env: &mut HashMap<String, i32>) -> Result<i32, String> 
                 LispExpr::Symbol(s) if s == "+" => {
                     let mut result = 0;
                     for expr in rest {
-                        result += eval(expr, env)?;
+                        let tmp = eval(expr, env)?;
+                        match tmp {
+                            LispExpr::Int(n) => result += n,
+                            _ => panic!("Unexpected argument")
+                        }
                     }
-                    Ok(result)
+                    Ok(LispExpr::Int(result))
                 }
                 LispExpr::Symbol(s) if s == "-" => {
                     if rest.is_empty() {
                         return Err("Expected at least one argument".to_string());
                     }
-                    let mut result = eval(&rest[0], env)?;
-                    for expr in &rest[1..] {
-                        result -= eval(expr, env)?;
-                        
+                    let first = eval(&rest[0], env)?;
+                    let mut result;
+                    match first {
+                        LispExpr::Int(n) => result = n,
+                        _ => panic!("Unexpected argument")
                     }
-                    Ok(result)
+                    for expr in &rest[1..] {
+                        let tmp  = eval(expr, env)?;
+                        match tmp {
+                            LispExpr::Int(n) => result -= n,
+                            _ => panic!("Unexpected argument")
+                        }
+                    }
+                    Ok(LispExpr::Int(result))
                 }
                 LispExpr::Symbol(s) if s == "*" => {
                     let mut result = 1;
                     for expr in rest {
-                        result *= eval(expr, env)?;
+                        let tmp = eval(expr, env)?;
+                        match tmp {
+                            LispExpr::Int(n) => result *=  n,
+                            _ => panic!("Unexpected argument")
+                        }
                     }
-                    Ok(result)
+                    Ok(LispExpr::Int(result))
                 }
                 LispExpr::Symbol(s) if s == "/" => {
                     if rest.is_empty() {
                         return Err("Expected at least one argument".to_string());
                     }
-                    let mut result = eval(&rest[0], env)?;
+                    let first = eval(&rest[0], env)?;
+                    let mut result;
+                    match first {
+                        LispExpr::Int(n) => result = n,
+                        _ => panic!("Unexpected argument")
+                    }
                     for expr in &rest[1..] {
-                        let val = eval(expr, env)?;
+                        let tmp = eval(expr, env)?;
+                        let val;
+                        match tmp {
+                            LispExpr::Int(n) => val = n,
+                            _ => panic!("Unexpected argument")
+                        }
                         if val == 0 {
                             return Err("Divison by zero".to_string());
                         }
                         result /= val;
                     }
-                    Ok(result)                    
+                    Ok(LispExpr::Int(result))                    
                 }
                 LispExpr::Symbol(s) if s == "=" => {
                     if rest.is_empty() {
@@ -116,62 +153,102 @@ fn eval(expr: &LispExpr, env: &mut HashMap<String, i32>) -> Result<i32, String> 
                     for expr in &rest[1..] {
                         let val = eval(expr, env)?;
                         if val != result {
-                            return Ok(0);
+                            return Ok(LispExpr::Int(0));
                         }
                     }
-                    Ok(1)                    
+                    Ok(LispExpr::Int(1))                    
                 }
                 LispExpr::Symbol(s) if s == "<" => {
                     if rest.is_empty() {
                         return Err("Expected at least one argument".to_string());
                     }
-                    let result = eval(&rest[0], env)?;
+                    let tmp = eval(&rest[0], env)?;
+                    let result;
+                    match tmp {
+                        LispExpr::Int(n) => result = n,
+                        _ => panic!("Unexpected argument")
+                    }
                     for expr in &rest[1..] {
                         let val = eval(expr, env)?;
-                        if val <= result {
-                            return Ok(0);
+                        match val {
+                            LispExpr::Int(n) => {
+                                if n <= result {
+                                    return Ok(LispExpr::Int(0));
+                                }
+                            },
+                            _ => panic!("Unexpected argument")
                         }
                     }
-                    Ok(1)                    
+                    Ok(LispExpr::Int(1))                    
                 }
                 LispExpr::Symbol(s) if s == "<=" => {
                     if rest.is_empty() {
                         return Err("Expected at least one argument".to_string());
                     }
-                    let result = eval(&rest[0], env)?;
+                    let tmp = eval(&rest[0], env)?;
+                    let result;
+                    match tmp {
+                        LispExpr::Int(n) => result = n,
+                        _ => panic!("Unexpected argument")
+                    }
                     for expr in &rest[1..] {
                         let val = eval(expr, env)?;
-                        if val < result {
-                            return Ok(0);
+                        match val {
+                            LispExpr::Int(n) => {
+                                if n < result {
+                                    return Ok(LispExpr::Int(0));
+                                }
+                            },
+                            _ => panic!("Unexpected argument")
                         }
                     }
-                    Ok(1)                    
+                    Ok(LispExpr::Int(1))                    
                 }
                 LispExpr::Symbol(s) if s == ">" => {
                     if rest.is_empty() {
                         return Err("Expected at least one argument".to_string());
                     }
-                    let result = eval(&rest[0], env)?;
+                    let tmp = eval(&rest[0], env)?;
+                    let result;
+                    match tmp {
+                        LispExpr::Int(n) => result = n,
+                        _ => panic!("Unexpected argument")
+                    }
                     for expr in &rest[1..] {
                         let val = eval(expr, env)?;
-                        if val >= result {
-                            return Ok(0);
+                        match val {
+                            LispExpr::Int(n) => {
+                                if n >= result {
+                                    return Ok(LispExpr::Int(0));
+                                }
+                            },
+                            _ => panic!("Unexpected argument")
                         }
                     }
-                    Ok(1)                    
+                    Ok(LispExpr::Int(1))                    
                 }
                 LispExpr::Symbol(s) if s == ">=" => {
                     if rest.is_empty() {
                         return Err("Expected at least one argument".to_string());
                     }
-                    let result = eval(&rest[0], env)?;
+                    let tmp = eval(&rest[0], env)?;
+                    let result;
+                    match tmp {
+                        LispExpr::Int(n) => result = n,
+                        _ => panic!("Unexpected argument")
+                    }
                     for expr in &rest[1..] {
                         let val = eval(expr, env)?;
-                        if val > result {
-                            return Ok(0);
+                        match val {
+                            LispExpr::Int(n) => {
+                                if n > result {
+                                    return Ok(LispExpr::Int(0));
+                                }
+                            },
+                            _ => panic!("Unexpected argument")
                         }
                     }
-                    Ok(1)                    
+                    Ok(LispExpr::Int(1))                    
                 }
                 LispExpr::Symbol(s) if s == "let" => {
                     if rest.len() != 2 {
@@ -179,8 +256,13 @@ fn eval(expr: &LispExpr, env: &mut HashMap<String, i32>) -> Result<i32, String> 
                     }
                     if let LispExpr::Symbol(name) = &rest[0] {
                         let val = eval(&rest[1], env)?;
-                        env.insert(name.clone(), val);
-                        Ok(val)
+                        match val {
+                            LispExpr::Int(n) => {
+                                env.insert(name.clone(), n);
+                                return Ok(val);
+                            },
+                            _ => panic!("Unexpected argument")
+                        }                        
                     } else {
                         Err("Expected a symbol as first argument".to_string())
                     }
@@ -189,7 +271,12 @@ fn eval(expr: &LispExpr, env: &mut HashMap<String, i32>) -> Result<i32, String> 
                     if rest.len() != 3 {
                         return Err("Expected three arguments".to_string());
                     }
-                    let pred = eval(&rest[0], env)?;
+                    let tmp = eval(&rest[0], env)?;
+                    let pred;
+                    match tmp {
+                        LispExpr::Int(n) => pred = n,
+                        _ => panic!("Unexpected argument")
+                    }
                     if pred != 0 {
                         eval(&rest[1], env)
                     } else {
@@ -203,7 +290,7 @@ fn eval(expr: &LispExpr, env: &mut HashMap<String, i32>) -> Result<i32, String> 
     }
 }
 
-fn eval_str(program: &str) -> Result<i32, String> {
+fn eval_str(program: &str) -> Result<LispExpr, String> {
     let tokens = tokenize::tokenize(program);
     let (expr, rest) = parse(&tokens)?;
     if !rest.is_empty() {
@@ -212,6 +299,7 @@ fn eval_str(program: &str) -> Result<i32, String> {
     let mut env = HashMap::new();
     eval(&expr, &mut env)
 }
+
 
 fn main() {
     loop {
@@ -227,7 +315,7 @@ fn main() {
             break;
         }
         match eval_str(input) {
-            Ok(result) => println!("{}", result),
+            Ok(result) => println!("{}", result.expr_str()),
             Err(err) => println!("Error: {}", err)
         }
     }
@@ -254,26 +342,25 @@ mod tests {
         ]));
         assert_eq!(rest, Vec::<String>::new());
     }
-
     #[test]
     fn test_eval_str() {
-        let result = eval_str("(* 2 3)").unwrap();
-        assert_eq!(result, 6);
-        let result = eval_str("(- 7 4)").unwrap();
-        assert_eq!(result, 3);
-        let result = eval_str("(if 1 3 2)").unwrap();
-        assert_eq!(result, 3);
-        let result = eval_str("(= 1 3 2)").unwrap();
-        assert_eq!(result, 0);
-        let result = eval_str("(= 1 1 1)").unwrap();
-        assert_eq!(result, 1);
-        let result = eval_str("(< 1 2)").unwrap();
-        assert_eq!(result, 1);
-        let result = eval_str("(<= 1 1)").unwrap();
-        assert_eq!(result, 1);
-        let result = eval_str("(> 2 1)").unwrap();
-        assert_eq!(result, 1);
-        let result = eval_str("(>= 1 1)").unwrap();
-        assert_eq!(result, 1);
+        let result = eval_str("(* 2 3)").unwrap().expr_str();
+        assert_eq!(result, "6".to_string());
+        let result = eval_str("(- 7 4)").unwrap().expr_str();
+        assert_eq!(result, "3".to_string());
+        let result = eval_str("(if 1 3 2)").unwrap().expr_str();
+        assert_eq!(result, "3".to_string());
+        let result = eval_str("(= 1 3 2)").unwrap().expr_str();
+        assert_eq!(result, "0".to_string());
+        let result = eval_str("(= 1 1 1)").unwrap().expr_str();
+        assert_eq!(result, "1".to_string());
+        let result = eval_str("(< 1 2)").unwrap().expr_str();
+        assert_eq!(result, "1".to_string());
+        let result = eval_str("(<= 1 1)").unwrap().expr_str();
+        assert_eq!(result, "1".to_string());
+        let result = eval_str("(> 2 1)").unwrap().expr_str();
+        assert_eq!(result, "1".to_string());
+        let result = eval_str("(>= 1 1)").unwrap().expr_str();
+        assert_eq!(result, "1".to_string());
     }
 }
