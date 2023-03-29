@@ -1,17 +1,17 @@
-use std::collections::HashMap;
+use crate::environment::Env;
 use crate::expr;
 use crate::tokenize;
 use crate::parse;
 
 // 構文木を再帰的に評価する
-fn eval(expr: &expr::Expr, env: &mut HashMap<String, i32>) -> Result<expr::Expr, String> {
+fn eval(expr: &expr::Expr, env: &mut Env) -> Result<expr::Expr, String> {
     match expr {
         expr::Expr::Int(n) => Ok(expr::Expr::Int(*n)),
         expr::Expr::Symbol(s) => {
-            if let Some(val) = env.get(s) {
-                Ok(expr::Expr::Int(*val))
-            } else {
-                Err(format!("Undefined symbol '{}", s))
+            let val = env.get(s);
+            match val {
+                expr::Expr::Int(n) => Ok(expr::Expr::Int(n)),
+                _ =>  Err(format!("Undefined symbol '{}", s))
             }
         }
         expr::Expr::Boolean(b) => Ok(expr::Expr::Boolean(*b)),
@@ -235,8 +235,8 @@ fn eval(expr: &expr::Expr, env: &mut HashMap<String, i32>) -> Result<expr::Expr,
                     if let expr::Expr::Symbol(name) = &rest[0] {
                         let val = eval(&rest[1], env)?;
                         match val {
-                            expr::Expr::Int(n) => {
-                                env.insert(name.clone(), n);
+                            expr::Expr::Int(_) => {
+                                env.set(name.clone(), val.clone());
                                 return Ok(val);
                             },
                             _ => panic!("Unexpected argument")
@@ -268,41 +268,43 @@ fn eval(expr: &expr::Expr, env: &mut HashMap<String, i32>) -> Result<expr::Expr,
     }
 }
 
-pub fn eval_str(program: &str) -> Result<expr::Expr, String> {
+pub fn eval_str(program: &str, env: &mut Env) -> Result<expr::Expr, String> {
     let tokens = tokenize::tokenize(program);
     let (expr, rest) = parse::parse(&tokens)?;
     if !rest.is_empty() {
         return Err("Unexpected trailing tokens".to_string());
     }
-    let mut env = HashMap::new();
-    eval(&expr, &mut env)
+    eval(&expr, env)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::eval::eval_str;
+    use crate::environment::Env;
    
     #[test]
     fn test_eval_str() {
-        let result = eval_str("(* 2 3)").unwrap().expr_str();
+        let mut env = Env::new();
+
+        let result = eval_str("(* 2 3)", &mut env).unwrap().expr_str();
         assert_eq!(result, "6".to_string());
-        let result = eval_str("(- 7 4)").unwrap().expr_str();
+        let result = eval_str("(- 7 4)", &mut env).unwrap().expr_str();
         assert_eq!(result, "3".to_string());
-        let result = eval_str("(if (= 1 1) 3 2)").unwrap().expr_str();
+        let result = eval_str("(if (= 1 1) 3 2)", &mut env).unwrap().expr_str();
         assert_eq!(result, "3".to_string());
-        let result = eval_str("(= 1 3 2)").unwrap().expr_str();
+        let result = eval_str("(= 1 3 2)", &mut env).unwrap().expr_str();
         assert_eq!(result, "#f".to_string());
-        let result = eval_str("(= 1 1 1)").unwrap().expr_str();
+        let result = eval_str("(= 1 1 1)", &mut env).unwrap().expr_str();
         assert_eq!(result, "#t".to_string());
-        let result = eval_str("(< 1 2)").unwrap().expr_str();
+        let result = eval_str("(< 1 2)", &mut env).unwrap().expr_str();
         assert_eq!(result, "#t".to_string());
-        let result = eval_str("(<= 1 1)").unwrap().expr_str();
+        let result = eval_str("(<= 1 1)", &mut env).unwrap().expr_str();
         assert_eq!(result, "#t".to_string());
-        let result = eval_str("(> 2 1)").unwrap().expr_str();
+        let result = eval_str("(> 2 1)", &mut env).unwrap().expr_str();
         assert_eq!(result, "#t".to_string());
-        let result = eval_str("(>= 1 1)").unwrap().expr_str();
+        let result = eval_str("(>= 1 1)", &mut env).unwrap().expr_str();
         assert_eq!(result, "#t".to_string());
-        let result = eval_str("(< 1 1)").unwrap().expr_str();
+        let result = eval_str("(< 1 1)", &mut env).unwrap().expr_str();
         assert_eq!(result, "#f".to_string());
     }
 }

@@ -4,8 +4,10 @@ mod tokenize;
 mod expr;
 mod parse;
 mod eval;
+mod environment;
 
 fn main() {
+    let mut env = environment::Env::new();
     loop {
         print!("> ");
         std::io::stdout().flush().unwrap();
@@ -18,7 +20,7 @@ fn main() {
         if input == "quit" {
             break;
         }
-        match eval::eval_str(input) {
+        match eval::eval_str(input, &mut env) {
             Ok(result) => println!("{}", result.expr_str()),
             Err(err) => println!("Error: {}", err)
         }
