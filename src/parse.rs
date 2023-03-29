@@ -31,6 +31,10 @@ pub fn parse(tokens: &[String]) -> Result<(expr::Expr, &[String]), String> {
         }        
     } else if token == ")" {
         return Err("Unexpected ')".to_string());
+    } else if token == "#t" {
+        Ok((expr::Expr::Boolean(true), rest))
+    } else if token == "#f" {
+        Ok((expr::Expr::Boolean(false), rest))
     } else {
         if let Ok(int) = token.parse::<i32>() {
             return Ok((expr::Expr::Int(int), rest));
