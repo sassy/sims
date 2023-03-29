@@ -14,6 +14,7 @@ fn eval(expr: &expr::Expr, env: &mut HashMap<String, i32>) -> Result<expr::Expr,
                 Err(format!("Undefined symbol '{}", s))
             }
         }
+        expr::Expr::Boolean(b) => Ok(expr::Expr::Boolean(*b)),
         expr::Expr::List(list) => {
             if list.is_empty() {
                 return Err("Empty list".to_string());
@@ -95,10 +96,10 @@ fn eval(expr: &expr::Expr, env: &mut HashMap<String, i32>) -> Result<expr::Expr,
                     for expr in &rest[1..] {
                         let val = eval(expr, env)?;
                         if val != result {
-                            return Ok(expr::Expr::Int(0));
+                            return Ok(expr::Expr::Boolean(false));
                         }
                     }
-                    Ok(expr::Expr::Int(1))                    
+                    Ok(expr::Expr::Boolean(true))                    
                 }
                 expr::Expr::Symbol(s) if s == "<" => {
                     if rest.is_empty() {
@@ -115,13 +116,13 @@ fn eval(expr: &expr::Expr, env: &mut HashMap<String, i32>) -> Result<expr::Expr,
                         match val {
                             expr::Expr::Int(n) => {
                                 if n <= result {
-                                    return Ok(expr::Expr::Int(0));
+                                    return Ok(expr::Expr::Boolean(false));
                                 }
                             },
                             _ => panic!("Unexpected argument")
                         }
                     }
-                    Ok(expr::Expr::Int(1))                    
+                    Ok(expr::Expr::Boolean(true))                    
                 }
                 expr::Expr::Symbol(s) if s == "<=" => {
                     if rest.is_empty() {
@@ -138,13 +139,13 @@ fn eval(expr: &expr::Expr, env: &mut HashMap<String, i32>) -> Result<expr::Expr,
                         match val {
                             expr::Expr::Int(n) => {
                                 if n < result {
-                                    return Ok(expr::Expr::Int(0));
+                                    return Ok(expr::Expr::Boolean(true));
                                 }
                             },
                             _ => panic!("Unexpected argument")
                         }
                     }
-                    Ok(expr::Expr::Int(1))                    
+                    Ok(expr::Expr::Boolean(true))                    
                 }
                 expr::Expr::Symbol(s) if s == ">" => {
                     if rest.is_empty() {
@@ -161,13 +162,13 @@ fn eval(expr: &expr::Expr, env: &mut HashMap<String, i32>) -> Result<expr::Expr,
                         match val {
                             expr::Expr::Int(n) => {
                                 if n >= result {
-                                    return Ok(expr::Expr::Int(0));
+                                    return Ok(expr::Expr::Boolean(false));
                                 }
                             },
                             _ => panic!("Unexpected argument")
                         }
                     }
-                    Ok(expr::Expr::Int(1))                    
+                    Ok(expr::Expr::Boolean(true))                    
                 }
                 expr::Expr::Symbol(s) if s == ">=" => {
                     if rest.is_empty() {
@@ -184,13 +185,13 @@ fn eval(expr: &expr::Expr, env: &mut HashMap<String, i32>) -> Result<expr::Expr,
                         match val {
                             expr::Expr::Int(n) => {
                                 if n > result {
-                                    return Ok(expr::Expr::Int(0));
+                                    return Ok(expr::Expr::Boolean(false));
                                 }
                             },
                             _ => panic!("Unexpected argument")
                         }
                     }
-                    Ok(expr::Expr::Int(1))                    
+                    Ok(expr::Expr::Boolean(true))                    
                 }
                 expr::Expr::Symbol(s) if s == "car" => {
                     let arg = &eval(&list[1], env)?;
@@ -251,15 +252,15 @@ fn eval(expr: &expr::Expr, env: &mut HashMap<String, i32>) -> Result<expr::Expr,
                     let tmp = eval(&rest[0], env)?;
                     let pred;
                     match tmp {
-                        expr::Expr::Int(n) => pred = n,
+                        expr::Expr::Boolean(b) => pred = b,
                         _ => panic!("Unexpected argument")
                     }
-                    if pred != 0 {
+                    if pred  {
                         eval(&rest[1], env)
                     } else {
                         eval(&rest[2], env)
                     }
-                }                
+                }
                 _ => Err("Unexpected function or syntax".to_string()),
             }
         }
@@ -287,19 +288,21 @@ mod tests {
         assert_eq!(result, "6".to_string());
         let result = eval_str("(- 7 4)").unwrap().expr_str();
         assert_eq!(result, "3".to_string());
-        let result = eval_str("(if 1 3 2)").unwrap().expr_str();
+        let result = eval_str("(if (= 1 1) 3 2)").unwrap().expr_str();
         assert_eq!(result, "3".to_string());
         let result = eval_str("(= 1 3 2)").unwrap().expr_str();
-        assert_eq!(result, "0".to_string());
+        assert_eq!(result, "#f".to_string());
         let result = eval_str("(= 1 1 1)").unwrap().expr_str();
-        assert_eq!(result, "1".to_string());
+        assert_eq!(result, "#t".to_string());
         let result = eval_str("(< 1 2)").unwrap().expr_str();
-        assert_eq!(result, "1".to_string());
+        assert_eq!(result, "#t".to_string());
         let result = eval_str("(<= 1 1)").unwrap().expr_str();
-        assert_eq!(result, "1".to_string());
+        assert_eq!(result, "#t".to_string());
         let result = eval_str("(> 2 1)").unwrap().expr_str();
-        assert_eq!(result, "1".to_string());
+        assert_eq!(result, "#t".to_string());
         let result = eval_str("(>= 1 1)").unwrap().expr_str();
-        assert_eq!(result, "1".to_string());
+        assert_eq!(result, "#t".to_string());
+        let result = eval_str("(< 1 1)").unwrap().expr_str();
+        assert_eq!(result, "#f".to_string());
     }
 }
