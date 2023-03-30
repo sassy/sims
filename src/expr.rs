@@ -4,6 +4,7 @@ pub enum Expr {
     Symbol(String),
     Boolean(bool),
     List(Vec<Expr>),
+    Nil(),
     Cons(Box<(Expr, Expr)>),
 }
 
@@ -13,6 +14,7 @@ impl Expr {
             Expr::Int(n) => n.to_string(),
             Expr::Symbol(s) => s,
             Expr::Boolean(b) => if b { "#t".to_owned() } else {"#f".to_owned()},
+            Expr::Nil() => "'()".to_owned(),
             Expr::List(_) => "not implemented".to_string(),
             Expr::Cons(_) => "not implemented".to_string(),
         }

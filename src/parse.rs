@@ -31,6 +31,15 @@ pub fn parse(tokens: &[String]) -> Result<(expr::Expr, &[String]), String> {
         }        
     } else if token == ")" {
         return Err("Unexpected ')".to_string());
+    } else if token ==  "'" {
+        if rest.is_empty() {
+            return  Err("Unexpected end of input".to_string());
+        }
+        if rest[0] == "(" && rest[1] == ")" {
+            rest = &rest[2..];
+            return Ok((expr::Expr::Nil(), rest));
+        }
+        return Err("Uninmplmented".to_string());
     } else {
          if token == "#t" {
             Ok((expr::Expr::Boolean(true), rest))

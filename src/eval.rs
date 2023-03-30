@@ -15,6 +15,7 @@ fn eval(expr: &expr::Expr, env: &mut Env) -> Result<expr::Expr, String> {
             }
         }
         expr::Expr::Boolean(b) => Ok(expr::Expr::Boolean(*b)),
+        expr::Expr::Nil() => Ok(expr::Expr::Nil()),
         expr::Expr::List(list) => {
             if list.is_empty() {
                 return Err("Empty list".to_string());
